@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vLLM Ascend 技术资料站</title>
+<meta name="description" content="面向 vLLM / vllm-ascend 的可离线技术文档：投机推理技术图鉴、框架模块化拆解、特性开关手册。纯静态页面，无 CDN、无追踪。">
+<meta name="color-scheme" content="dark light">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0a1422;
+  --bg-2: #0e1c2e;
+  --surface: #112236;
+  --surface-2: #16293f;
+  --ink: #e4ecf4;
+  --muted: #a3b5c6;
+  --faint: #7f96aa;
+  --line: #2a4056;
+  --line-soft: #1d3145;
+  --accent: #39cdb2;
+  --accent-2: #f0a44a;
+  --verify: #79a9f5;
+  --glow: rgba(57, 205, 178, .16);
+  --sans: "Noto Sans SC Variable", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Cascadia Code", "JetBrains Mono", Consolas, ui-monospace, monospace;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f6f9;
+  --bg-2: #e9eff5;
+  --surface: #ffffff;
+  --surface-2: #f7fafc;
+  --ink: #15283b;
+  --muted: #52677b;
+  --faint: #75899b;
+  --line: #d4dee7;
+  --line-soft: #e4ebf1;
+  --accent: #087f70;
+  --accent-2: #c77a16;
+  --verify: #356eb4;
+  --glow: rgba(8, 127, 112, .12);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 520px at 82% -12%, var(--glow), transparent 62%),
+    radial-gradient(900px 460px at 6% -8%, rgba(240, 164, 74, .10), transparent 60%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.78;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--verify); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 3px; }
+.skip-link { position: fixed; top: -80px; left: 12px; z-index: 100; padding: 8px 14px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
+.skip-link:focus { top: 12px; }
+
+.wrap { width: min(1120px, calc(100% - 48px)); margin: 0 auto; }
+
+header.top {
+  display: flex; align-items: center; gap: 16px;
+  padding: 22px 0 0;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .3px; }
+.brand-mark {
+  width: 15px; height: 15px; border-radius: 4px;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  box-shadow: 0 0 14px var(--glow);
+}
+.brand em { font-style: normal; color: var(--faint); font-weight: 500; }
+.brand-sub {
+  font-size: 12px; color: var(--faint); border: 1px solid var(--line);
+  padding: 1px 9px; border-radius: 99px; white-space: nowrap;
+}
+.top-end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.ghost {
+  font: inherit; font-size: 14px; color: var(--muted); background: transparent;
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px;
+  cursor: pointer; text-decoration: none; transition: border-color .15s, color .15s;
+}
+.ghost:hover { color: var(--ink); border-color: var(--accent); }
+
+.hero { padding: 76px 0 44px; max-width: 800px; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 12.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--accent); margin: 0 0 18px;
+}
+.eyebrow::before { content: ""; width: 26px; height: 1px; background: currentColor; opacity: .7; }
+h1 {
+  margin: 0 0 20px; font-size: clamp(2rem, 4.6vw, 3.15rem);
+  line-height: 1.24; letter-spacing: -.01em; font-weight: 800;
+}
+h1 span { color: var(--accent); }
+.lede { margin: 0; color: var(--muted); font-size: 1.06rem; max-width: 62ch; }
+
+.cards {
+  display: grid; gap: 18px; padding: 12px 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+.card {
+  position: relative; display: flex; flex-direction: column; gap: 12px;
+  padding: 26px 26px 22px; text-decoration: none; color: inherit;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--line); border-radius: 16px;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  overflow: hidden;
+}
+.card::after {
+  content: ""; position: absolute; inset: 0; border-radius: 16px;
+  background: radial-gradient(420px 180px at 88% 0%, var(--glow), transparent 70%);
+  opacity: 0; transition: opacity .18s ease; pointer-events: none;
+}
+.card:hover, .card:focus-visible {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, .75);
+}
+.card:hover::after, .card:focus-visible::after { opacity: 1; }
+.card-head { display: flex; align-items: flex-start; gap: 12px; }
+.card-idx {
+  font-family: var(--mono); font-size: 12px; color: var(--faint);
+  border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px;
+  line-height: 1.6; flex: none; margin-top: 4px;
+}
+.card h2 { margin: 0; font-size: 1.24rem; line-height: 1.45; font-weight: 700; }
+.tag {
+  margin-left: auto; flex: none; font-size: 11.5px; font-family: var(--mono);
+  letter-spacing: .04em; padding: 2px 9px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  color: var(--accent); white-space: nowrap; margin-top: 5px;
+}
+.tag.ext { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 45%, var(--line)); }
+.card p { margin: 0; color: var(--muted); font-size: .96rem; }
+.meta {
+  margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line-soft);
+  display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--faint);
+  font-family: var(--mono);
+}
+.meta span::before { content: "· "; color: var(--line); }
+.meta span:first-child::before { content: ""; }
+.go { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-size: 14px; font-weight: 600; }
+.card:hover .go { gap: 10px; }
+.go::after { content: "→"; transition: none; }
+
+.note {
+  margin: 40px 0 0; padding: 18px 22px; border-left: 3px solid var(--accent);
+  background: var(--surface); border-radius: 0 12px 12px 0; color: var(--muted); font-size: .95rem;
+}
+.note strong { color: var(--ink); }
+.note code { font-family: var(--mono); font-size: .92em; color: var(--verify); }
+
+footer {
+  margin-top: 64px; padding: 26px 0 54px; border-top: 1px solid var(--line-soft);
+  display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: baseline;
+  color: var(--faint); font-size: 13.5px;
+}
+footer a { color: var(--faint); }
+footer a:hover { color: var(--ink); }
+.foot-end { margin-left: auto; font-family: var(--mono); font-size: 12.5px; }
+
+@media (max-width: 640px) {
+  .wrap { width: calc(100% - 32px); }
+  .hero { padding: 48px 0 30px; }
+  .brand-sub { display: none; }
+  .ghost { padding: 5px 11px; font-size: 13px; }
+  .card { padding: 22px 20px 18px; }
+  .tag { display: none; }
+  footer { flex-direction: column; }
+  .foot-end { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+  html { scroll-behavior: auto; }
+}
+@media print {
+  body { background: #fff; color: #000; }
+  .card, .note { break-inside: avoid; }
+  .top-end, footer a { display: none; }
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">跳到主要内容</a>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span>vLLM <em>×</em> Ascend</div>
+    <span class="brand-sub">技术资料站</span>
+    <div class="top-end">
+      <a class="ghost" href="https://github.com/tanjiangshan/vllm-ascend-hub">GitHub</a>
+      <button class="ghost" id="theme-toggle" type="button" aria-live="polite">切换浅色</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <p class="eyebrow">Static docs · Offline first</p>
+      <h1>把推理链路的每一层，<br><span>讲到能动手为止</span></h1>
+      <p class="lede">面向 vLLM 与 vllm-ascend 的中文技术文档集合：从投机推理的算法结构与昇腾部署，到特性开关的完整语义。全部为纯静态页面，不依赖 CDN，可整目录离线打开。</p>
+    </section>
+
+    <section class="cards" aria-label="文档列表">
+
+      <a class="card" href="./spec-demo/">
+        <div class="card-head">
+          <span class="card-idx">01</span>
+          <h2>投机推理技术图鉴</h2>
+          <span class="tag">站内</span>
+        </div>
+        <p>MTP、DFlash、DSpark、DFlash2 的算法结构、公开 NPU 证据与昇腾部署验收。含验证流程、置信度与前缀调度演示。</p>
+        <div class="meta">
+          <span>10 章</span><span>交互演示</span><span>浅色 / 暗色</span>
+        </div>
+        <span class="go">进入图鉴</span>
+      </a>
+
+      <a class="card" href="https://tanjiangshan.github.io/vllm-ascend-feature-flag-handbook/">
+        <div class="card-head">
+          <span class="card-idx">02</span>
+          <h2>特性开关手册</h2>
+          <span class="tag ext">独立站</span>
+        </div>
+        <p>additional-config 全量配置、环境变量、迁移对照与版本历史。社区维护，中英双语，支持全文搜索。</p>
+        <div class="meta">
+          <span>MkDocs Material</span><span>中 / EN</span><span>独立部署</span>
+        </div>
+        <span class="go">打开手册</span>
+      </a>
+
+    </section>
+
+    <div class="note">
+      <strong>关于更新：</strong>本站只做入口聚合。投机推理图鉴从本仓库的 <code>spec-demo/</code> 直接发布；特性开关手册由 <a href="https://github.com/tanjiangshan/vllm-ascend-feature-flag-handbook">独立仓库</a> 构建部署，保持中英双语与搜索索引的原始路径不变。
+    </div>
+  </main>
+
+  <footer>
+    <span>静态托管于 GitHub Pages</span>
+    <a href="https://github.com/tanjiangshan/vllm-ascend-hub">仓库源码</a>
+    <a href="./spec-demo/">投机推理图鉴</a>
+    <span class="foot-end">vllm-ascend-hub</span>
+  </footer>
+
+</div>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('theme-toggle');
+  var key = 'hub-theme';
+  var stored = null;
+  try { stored = localStorage.getItem(key); } catch (e) {}
+  var initial = stored || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  apply(initial);
+  function apply(theme) {
+    root.dataset.theme = theme;
+    btn.textContent = theme === 'dark' ? '切换浅色' : '切换暗色';
+    btn.setAttribute('aria-label', theme === 'dark' ? '切换到浅色主题' : '切换到暗色主题');
+  }
+  btn.addEventListener('click', function () {
+    var next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    apply(next);
+    try { localStorage.setItem(key, next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>
