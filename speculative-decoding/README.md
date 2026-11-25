@@ -4,7 +4,7 @@
 
 ## 打开
 
-在线版：<https://tanjiangshan.github.io/vllm-ascend-hub/spec-demo/>
+在线版：<https://tanjiangshan.github.io/vllm-ascend-hub/speculative-decoding/>
 
 本地版：直接用 Chrome 或 Edge 打开 `index.html`。不需要 HTTP 服务、Node、Python、CDN、在线字体或其他远程资源。
 
@@ -13,7 +13,7 @@
 本站是聚合站 `tanjiangshan/vllm-ascend-hub` 的子目录，与门户页一起由 GitHub Pages 托管。在 `vllm-learn` 仓库根目录执行：
 
 ```bash
-scripts/deploy-hub.sh spec-demo
+scripts/deploy-hub.sh speculative-decoding
 ```
 
 脚本以浅克隆方式拉取远端、rsync 同步门户与本目录后提交推送，只同步指定 demo，不影响其他子站。
@@ -68,7 +68,7 @@ scripts/deploy-hub.sh spec-demo
 ## 文件
 
 ```text
-spec-demo/
+speculative-decoding/
 ├── .nojekyll
 ├── index.html
 ├── css/style.css
